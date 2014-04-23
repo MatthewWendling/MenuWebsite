@@ -1,0 +1,170 @@
+Imports System.IO
+Imports System.Xml
+Imports System.Data
+Imports System.Xml.Xsl
+
+Partial Class XMLhomework
+    Inherits System.Web.UI.Page
+
+    Sub Page_Load(ByVal Sender As System.Object, ByVal e As System.EventArgs) Handles Me.Load
+        If IO.File.Exists("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml") = True Then
+
+            If Page.IsPostBack = False Then 'posting information on the same page
+
+                BindGrid()
+            End If
+        End If
+    End Sub
+    
+    Protected Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+        If IO.File.Exists("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml") = False Then
+            'if xml file does not exist then declare xmlwriter settings object
+            Dim settings As New XmlWriterSettings()
+
+            settings.Indent = True
+            'this creates multiple lines in the xml document, otherwise we would have one line doing everything "INDENT"
+
+            Dim xmlwriter As XmlWriter = xmlwriter.Create("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml")
+            'wouldnt be able to write these things if we didnt import the SYSTEMS.XML library
+            With xmlwriter
+
+                .WriteStartDocument()
+
+                .WriteStartElement("Orders")
+                .WriteStartElement("Order")
+
+                .WriteStartElement("Burger")
+                .WriteString(RadioButtonList1.SelectedValue)
+                .WriteEndElement()
+
+                .WriteStartElement("Fries")
+                .WriteString(RadioButtonList2.SelectedValue)
+                .WriteEndElement()
+
+                .WriteStartElement("Drink")
+                .WriteString(RadioButtonList3.SelectedValue)
+                .WriteEndElement()
+
+                .WriteStartElement("Cost")
+                .WriteString(Costtotal(RadioButtonList1.SelectedIndex, RadioButtonList2.SelectedIndex, RadioButtonList3.SelectedIndex))
+                .WriteEndElement()
+                .WriteEndElement()
+
+                .Close()
+            End With
+            MsgBox("XML File Created")
+        Else
+            MsgBox("XML File Already Exists")
+        End If
+        BindGrid()
+    End Sub
+    
+    Function Costtotal(value1 As String, value2 As String, value3 As String) As String
+        Dim tempCost As Double = 0
+        Dim totalCost As String = ""
+        If value1 = 0 Then
+            tempCost += 4.19
+        ElseIf value1 = 1 Then
+            tempCost += 4.79
+        ElseIf value1 = 2 Then
+            tempCost += 4.79
+        ElseIf value1 = 3 Then
+            tempCost += 5.39
+        End If
+
+        If value2 = 0 Then
+            tempCost += 2.39
+        ElseIf value2 = 1 Then
+            tempCost += 3.09
+        ElseIf value2 = 2 Then
+            tempCost += 4.99
+        End If
+
+        If value3 = 0 Then
+            tempCost += 1.69
+        ElseIf value3 = 1 Then
+            tempCost += 1.49
+        End If
+
+        totalCost = tempCost.ToString("C")
+
+        Return totalCost
+
+    End Function
+
+    Protected Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
+        Dim orderDataSet As New DataSet
+        orderDataSet.ReadXml("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml")
+        Dim newRow As DataRow = orderDataSet.Tables(0).NewRow
+        newRow("Burger") = RadioButtonList1.SelectedValue
+        newRow("Fries") = RadioButtonList2.SelectedValue
+        newRow("Drink") = RadioButtonList3.SelectedValue
+        newRow("Cost") = Costtotal(RadioButtonList1.SelectedIndex, RadioButtonList2.SelectedIndex, RadioButtonList3.SelectedIndex)
+        orderDataSet.Tables(0).Rows.Add(newRow)
+        orderDataSet.WriteXml("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml")
+        BindGrid()
+    End Sub
+
+    
+    Protected Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
+        If IO.File.Exists("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml") Then
+            Dim dataset As New DataSet()
+            '() means its an array, the file is containing more then one element.
+            dataset.ReadXml("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml")
+            GridView1.DataSource = dataset
+            GridView1.DataBind()
+        End If
+
+    End Sub
+
+    Sub BindGrid() 'Displays data in gridview
+        Dim myDataSet As New DataSet
+        myDataSet.ReadXml("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml")
+        GridView1.DataSource = myDataSet
+        GridView1.DataBind()
+    End Sub
+
+    Protected Sub gridview1_RowDeleting(ByVal sender As Object, ByVal e As System.Web.UI.WebControls.GridViewDeleteEventArgs) Handles GridView1.RowDeleting
+
+
+        BindGrid()
+        Dim myDataSet2 As DataSet = GridView1.DataSource
+        myDataSet2.Tables(0).Rows(GridView1.Rows(e.RowIndex).DataItemIndex).Delete()
+        myDataSet2.WriteXml("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml")
+        BindGrid()
+    End Sub
+
+    Protected Sub Gridview1_rowediting(ByVal sender As Object, ByVal e As System.Web.UI.WebControls.GridViewEditEventArgs) Handles GridView1.RowEditing
+        GridView1.EditIndex = e.NewEditIndex
+        BindGrid()
+        Dim mydataset3 As DataSet = GridView1.DataSource
+    End Sub
+    Protected Sub Gridview1_rowCancelingEdit(ByVal sender As Object, ByVal e As System.Web.UI.WebControls.GridViewCancelEditEventArgs) Handles GridView1.RowCancelingEdit
+        GridView1.EditIndex = -1
+        BindGrid()
+    End Sub
+
+    Protected Sub Gridview1_rowUpdating(ByVal sender As Object, ByVal e As System.Web.UI.WebControls.GridViewUpdateEventArgs) Handles GridView1.RowUpdating
+        Dim i As Integer = GridView1.Rows(e.RowIndex).DataItemIndex
+        Dim burger As String = CType(GridView1.Rows(e.RowIndex).Cells(2).Controls(0), TextBox).Text
+        Dim fries As String = CType(GridView1.Rows(e.RowIndex).Cells(3).Controls(0), TextBox).Text
+        Dim drinks As String = CType(GridView1.Rows(e.RowIndex).Cells(4).Controls(0), TextBox).Text
+        Dim cost As String = CType(GridView1.Rows(e.RowIndex).Cells(5).Controls(0), TextBox).Text
+
+        GridView1.EditIndex = -1
+        BindGrid()
+        Dim myDataSet3 As DataSet = GridView1.DataSource
+        myDataSet3.Tables(0).Rows(i).Item(0) = burger
+        myDataSet3.Tables(0).Rows(i).Item(1) = fries
+        myDataSet3.Tables(0).Rows(i).Item(2) = drinks
+        myDataSet3.Tables(0).Rows(i).Item(3) = cost
+        myDataSet3.WriteXml("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml")
+        BindGrid()
+    End Sub
+
+    Protected Sub Button4_Click(sender As Object, e As EventArgs) Handles Button4.Click
+        Dim xslt As New xslcompiledtransform()
+        xslt.Load("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\customer.xsl")
+        xslt.Transform("C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxml.xml", "C:\Users\MW1\Documents\Visual Studio 2013\WebSites\XMLMenu\myxmloutput.html")
+    End Sub
+End Class
